@@ -5,13 +5,14 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
 
-import android.location.Location;
+
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Toast;
 import android.Manifest;
 
@@ -22,17 +23,20 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.OnSuccessListener;
+
 
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 import gt.edu.umg.dangermap.BaseDatos.DbHelper;
+
 
 public class ReportActivity extends AppCompatActivity {
 
@@ -43,99 +47,57 @@ public class ReportActivity extends AppCompatActivity {
     private static final int CAMERA_REQUEST_CODE = 103;
 
     private EditText txtTipoIncidente;
-    private Button btnGuardarReporte, btnTomarFoto,btnRegresar;
+    private Button btnGuardarReporte, btnTomarFoto, btnRegresar;
     private Uri imageUri;
+    private ImageView imgIncidente;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_report); // Asegúrate de que el layout esté definido
+        setContentView(R.layout.activity_report);
 
         txtTipoIncidente = findViewById(R.id.txtTipoIncidente);
         btnGuardarReporte = findViewById(R.id.btnGuardarReporte);
         btnTomarFoto = findViewById(R.id.btnTomarFoto);
-        btnRegresar = findViewById(R.id.btnRegresar); // Inicializa el botón regresar
+        btnRegresar = findViewById(R.id.btnRegresar);
+        imgIncidente = findViewById(R.id.imgIncidente);
 
         // Inicializa ubicación
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
+        // Solicitar permisos de almacenamiento al iniciar la aplicación
+        checkStoragePermission();
+
         // Restablecer campos
         resetFields();
 
-        btnTomarFoto.setOnClickListener(v -> {
-            checkCameraPermission();
-        });
+        btnTomarFoto.setOnClickListener(v -> checkCameraPermission());
 
         btnGuardarReporte.setOnClickListener(v -> {
-            checkLocationPermission(); // Verifica permiso de ubicación al guardar el reporte
+            if (txtTipoIncidente.getText().toString().trim().isEmpty()) {
+                Toast.makeText(ReportActivity.this, "Debes completar la descripción del incidente", Toast.LENGTH_SHORT).show();
+            } else {
+                checkLocationPermission(); // Aquí se verifican los permisos de ubicación
+            }
         });
 
-        // Configura el botón regresar
-        btnRegresar.setOnClickListener(v -> {
-            finish();
-        });
+        btnRegresar.setOnClickListener(v -> finish());
 
-        // Si necesitas verificar el permiso de almacenamiento al inicio
-        checkStoragePermission();
-        checkLocationPermission();
+        checkLocationPermission(); // Mover aquí para solicitar ubicación
     }
 
     // Método para restablecer campos
     private void resetFields() {
-        txtTipoIncidente.setText(""); // Vaciar el campo de texto
-        imageUri = null; // Restablecer la imagen a null
-        // Aquí puedes restablecer cualquier otro campo o elemento gráfico si es necesario
+        txtTipoIncidente.setText("");
+        imgIncidente.setImageURI(null);
+        imageUri = null;
     }
 
     private void checkCameraPermission() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            // Si no se tiene permiso, solicitarlo
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST_CODE);
         } else {
-            // Permiso ya concedido, puedes abrir la cámara
             openCamera();
-        }
-    }
-
-    private void checkLocationPermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // Solicitar permiso de ubicación
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
-        } else {
-            obtenerUbicacion(); // Si ya se tiene el permiso, obtener la ubicación
-        }
-    }
-
-    private void checkStoragePermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            // Si no se tiene permiso, solicitarlo
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, STORAGE_PERMISSION_REQUEST_CODE);
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permiso concedido, abre la cámara
-                openCamera();
-            } else {
-                Toast.makeText(this, "Permiso para acceder a la cámara denegado", Toast.LENGTH_SHORT).show();
-            }
-        } else if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                obtenerUbicacion(); // Reintenta obtener la ubicación si se concede el permiso
-            } else {
-                Toast.makeText(this, "Permiso de ubicación denegado", Toast.LENGTH_SHORT).show();
-            }
-        } else if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permiso concedido, puedes proceder
-                Toast.makeText(this, "Permiso de almacenamiento concedido", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "Permiso de almacenamiento denegado", Toast.LENGTH_SHORT).show();
-            }
         }
     }
 
@@ -152,7 +114,7 @@ public class ReportActivity extends AppCompatActivity {
     }
 
     private File createImageFile() {
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         File image = null;
@@ -172,46 +134,90 @@ public class ReportActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == CAMERA_REQUEST_CODE && resultCode == RESULT_OK) {
-            // Aquí puedes manejar la imagen capturada
-            // Por ejemplo, puedes mostrarla en un ImageView o guardarla según tus necesidades
+            imgIncidente.setImageURI(imageUri);
+        }
+    }
+
+    private void checkLocationPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
+        } else {
+            obtenerUbicacion(); // Obtener la ubicación si ya se tiene permiso
+        }
+    }
+
+    private void checkStoragePermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, STORAGE_PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                openCamera();
+            } else {
+                Toast.makeText(this, "Permiso para acceder a la cámara denegado", Toast.LENGTH_SHORT).show();
+            }
+        } else if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                obtenerUbicacion(); // Obtener la ubicación si se concede el permiso
+            } else {
+                Toast.makeText(this, "Permiso de ubicación denegado", Toast.LENGTH_SHORT).show();
+            }
+        } else if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Permiso de almacenamiento concedido", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Permiso de almacenamiento denegado. Activa el permiso en la configuración.", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
     private void obtenerUbicacion() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // Solicita permiso de ubicación si no se ha concedido
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
         } else {
-            // Permiso concedido, obtiene la ubicación
             fusedLocationClient.getLastLocation()
-                    .addOnSuccessListener(this, new OnSuccessListener<Location>() {
-                        @Override
-                        public void onSuccess(Location location) {
-                            if (location != null) {
-                                double latitud = location.getLatitude();
-                                double longitud = location.getLongitude();
-                                guardarReporte(latitud, longitud); // Llama al método para guardar el reporte
-                            } else {
-                                Toast.makeText(ReportActivity.this, "No se pudo obtener la ubicación", Toast.LENGTH_SHORT).show();
-                            }
+                    .addOnSuccessListener(this, location -> {
+                        if (location != null) {
+                            double latitud = location.getLatitude();
+                            double longitud = location.getLongitude();
+                            guardarReporte(latitud, longitud); // Guardar el reporte con la ubicación
+                        } else {
+                            Toast.makeText(ReportActivity.this, "No se pudo obtener la ubicación", Toast.LENGTH_SHORT).show();
                         }
                     });
         }
     }
 
     private void guardarReporte(double latitud, double longitud) {
-        // Guarda en la base de datos SQLite
+        String tipoIncidente = txtTipoIncidente.getText().toString().trim();
+
+        if (tipoIncidente.isEmpty()) {
+            Toast.makeText(this, "Por favor, complete la descripción del incidente.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         SQLiteDatabase db = new DbHelper(this).getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put("tipo_incidente", txtTipoIncidente.getText().toString());
+        values.put("tipo_incidente", tipoIncidente);
         values.put("latitud", latitud);
         values.put("longitud", longitud);
-        values.put("imagen_ruta", imageUri != null ? imageUri.toString() : ""); // Guarda la ruta de la imagen
+        values.put("imagen_ruta", imageUri != null ? imageUri.toString() : "");
 
-        db.insert("reportes", null, values);
-        Toast.makeText(this, "Reporte guardado", Toast.LENGTH_SHORT).show();
+        long newRowId = db.insert("reportes", null, values);
+        if (newRowId != -1) {
+            Toast.makeText(this, "Reporte guardado", Toast.LENGTH_SHORT).show();
+            resetFields();
 
-        // No cerrar la actividad, solo restablecer los campos
-        resetFields();
+            // Enviar el broadcast al registrar un nuevo reporte
+            Intent intent = new Intent("com.tuapp.REPORTE_AGREGADO");
+            intent.putExtra("latitud", latitud);
+            intent.putExtra("longitud", longitud);
+            LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+        }
     }
 }

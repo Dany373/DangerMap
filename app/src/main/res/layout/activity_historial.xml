@@ -21,12 +21,13 @@
         android:scaleType="centerCrop"
         android:layout_marginTop="8dp" />
 
+    <!-- Botón para regresar a la actividad anterior -->
+
     <ListView
         android:id="@+id/listViewHistorial"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Botón para regresar a la actividad anterior -->
     <Button
         android:id="@+id/btnRegresar"
         android:layout_width="wrap_content"

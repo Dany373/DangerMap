@@ -28,7 +28,7 @@
         <!-- Añade tu clave API aquí -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="C7:C3:87:A2:01:D3:6F:6C:76:ED:DD:C1:E3:B1:95:BF:C4:A5:22:24" />
+            android:value="AIzaSyCPoju75_X1NLdEYuSd0_HGIXu2Jok-kwo" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

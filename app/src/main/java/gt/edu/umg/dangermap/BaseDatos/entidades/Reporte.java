@@ -1,16 +1,24 @@
 package gt.edu.umg.dangermap.BaseDatos.entidades;
 
 public class Reporte {
+    private int id; //
     private String tipoIncidente;
     private double latitud;
     private double longitud;
     private String imagenRuta;
 
-    public Reporte(String tipoIncidente, double latitud, double longitud, String imagenRuta) {
+    // constructor
+    public Reporte(int id, String tipoIncidente, double latitud, double longitud, String imagenRuta) {
+        this.id = id; //
         this.tipoIncidente = tipoIncidente;
         this.latitud = latitud;
         this.longitud = longitud;
         this.imagenRuta = imagenRuta;
+    }
+
+    // Getters y Setters
+    public int getId() {
+        return id;
     }
 
     public String getTipoIncidente() {
